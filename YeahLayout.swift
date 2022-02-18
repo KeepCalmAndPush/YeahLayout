@@ -12,7 +12,7 @@ extension UIView {
     public func make(_ a1: NSLayoutConstraint.Attribute,
                      _ relation: [YeahRelation] = .equal,
                      to a2: NSLayoutConstraint.Attribute = .notAnAttribute,
-                     of v2: UIView? = nil,
+                     of v2: Any? = nil,
                      _ c: CGFloat = 0)  -> NSLayoutConstraint {
         return make(a1, relation, to: 1, a2, of: v2, c)
     }
@@ -22,11 +22,11 @@ extension UIView {
                      _ relation: [YeahRelation] = .equal,
                      to m: CGFloat,
                      _ a2: NSLayoutConstraint.Attribute = .notAnAttribute,
-                     of v2: UIView? = nil,
+                     of v2: Any? = nil,
                      _ c: CGFloat = 0) -> NSLayoutConstraint
     {
         self.translatesAutoresizingMaskIntoConstraints = false
-        v2?.translatesAutoresizingMaskIntoConstraints = false
+        (v2 as? UIView)?.translatesAutoresizingMaskIntoConstraints = false
 
         var a2 = a2
         if v2 != nil && a2 == .notAnAttribute {
@@ -37,6 +37,9 @@ extension UIView {
         if relation.contains(.toSuperview) {
             if v2 == nil {
                 v2 = superview
+                if a2 == .notAnAttribute {
+                    a2 = a1
+                }
             } else {
                 fatalError("WHEN SPECIFIED .toSuperview RELATION YOU MUST PROVIDE NIL AS A SECOND VIEW!")
             }
@@ -52,11 +55,22 @@ extension UIView {
             constant: c
         )
 
-        guard let ancestor = self.commonAncestor(with: v2) else {
-            fatalError("VIEW1 AND VIEW2 MUST HAVE A COMMON ANCESTOR!\n\(self)\n\(String(describing: v2))")
-        }
+		var secondView: UIView?
+		if v2 == nil {
+			secondView = nil
+		} else if let view = v2 as? UIView {
+			secondView = view
+		} else if let guide = v2 as? UILayoutGuide {
+			secondView = guide.owningView
+		} else {
+			fatalError("VIEW2 CANNOT BE USED IN LAYOUT CONSTRAINING! \(String(describing: v2))")
+		}
 
-        ancestor.addConstraint(constraint)
+		if let ancestor =  self.commonAncestor(with: secondView) {
+			ancestor.addConstraint(constraint)
+		} else {
+			fatalError("VIEW1 AND VIEW2 MUST HAVE A COMMON ANCESTOR!\n\(self)\n\(String(describing: v2))")
+		}
 
         return constraint
     }
@@ -64,7 +78,7 @@ extension UIView {
     @discardableResult
     public func make(_ attribute: NSLayoutConstraint.Attribute,
                      _ relation: [YeahRelation] = .equal,
-                     to v2: UIView? = nil,
+                     to v2: Any? = nil,
                      _ constant: CGFloat = 0) -> NSLayoutConstraint
     {
         return make(attribute, relation, to: 1, of: v2, constant)
@@ -73,7 +87,7 @@ extension UIView {
     @discardableResult
     public func make(_ attributes: [NSLayoutConstraint.Attribute],
                      _ relation: [YeahRelation] = .equal,
-                     to v2: UIView? = nil,
+                     to v2: Any? = nil,
                      _ constants: [CGFloat] = []) -> [NSLayoutConstraint]
     {
         return make(attributes, relation, of: v2, constants)
@@ -84,7 +98,7 @@ extension UIView {
                      _ relation: [YeahRelation] = .equal,
                      as multipliers: [CGFloat] = [],
                      _ correspondingAttributes: [NSLayoutConstraint.Attribute] = [],
-                     of v2: UIView? = nil,
+                     of v2: Any? = nil,
                      _ constants: [CGFloat] = []) -> [NSLayoutConstraint]
     {
         var correspondingAttributes = correspondingAttributes
